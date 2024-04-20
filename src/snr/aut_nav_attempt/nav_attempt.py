@@ -1,3 +1,4 @@
+## This code is basically just the tracking node that will stop at nothing to find his blu (or thats the plan anyways)
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, PoseStamped
@@ -131,23 +132,34 @@ class TrackingNode(Node):
             #object_pose = robot_world_R@self.cp_pose+np.array([robot_world_x,robot_world_y,robot_world_z])
             # Changed variable name in above line, duplicated below
             object_pose = robot_world_R@self.obj_pose+np.array([robot_world_x,robot_world_y,robot_world_z])
-
         except TransformException as e:
             self.get_logger().error('Transform error: ' + str(e))
             return
         
         return object_pose
     
-    def timer_update(self):
+    def timer_update(self, object_pose):
         ################### Write your code here ###################
         
         # Now, the robot stops if the object is not detected
         # But, you may want to think about what to do in this case
         # and update the command velocity accordingly
+        x_dist = object_pose[0]
+        y_dist = object_pose[1]
+        self.pose_x_error.append(x_dist)
+        self.pose_y_error.append(y_dist)
+
         if self.obj_pose is None:
+           return 
+        try:
+            cmd_vel = Twist()
+            cmd_vel.linear.x = 1.0
+            cmd_vel.angular.z = 0.0
+            self.pub_control_cmd.publish(cmd_vel)
+        except x_dist < 0.5:
             cmd_vel = Twist()
             cmd_vel.linear.x = 0.0
-            cmd_vel.angular.z = 0.0
+            cmd_vel.angular.z = 1.0
             self.pub_control_cmd.publish(cmd_vel)
             return
         
@@ -162,47 +174,6 @@ class TrackingNode(Node):
         self.pub_control_cmd.publish(cmd_vel)
         #################################################
     
-    def controller(self, object_pose):
-        # Instructions: You can implement your own control algorithm here
-        # feel free to modify the code structure, add more parameters, more input variables for the function, etc.
-        
-        ########### Write your code here ###########
-
-
-        # TODO: Update the control velocity command
-        # find angle between center and y 
-        # use proportional controller to correct angle
-        # I don't know if we have access to the angles of the robot and object from here
-        # Maybe we can avoid angles by having it strafe to center the object
-        # Use x error to correct distance between object and robot
-        # Use y error to center object in camera frame
-
-        Kp_x = 1
-        Kp_y = 0.75
-
-        ref_dist = 0.3 #m   as described in lab document
-
-        x_dist = object_pose[0]
-        y_dist = object_pose[1]
-
-        self.pose_x_error.append(x_dist)
-        self.pose_y_error.append(y_dist)
-        if self.counter == 100:
-            with open("x_pose.pkl", 'wb') as file:
-                pickle.dump(self.pose_x_error, file)
-            with open("y_pos.pkl", 'wb') as file:
-                pickle.dump(self.pose_y_error, file)
-            self.get_logger().info('Data Saved')
-            self.counter = 0
-        else: self.counter+=1
-
-        cmd_vel = Twist()
-        cmd_vel.linear.x = (x_dist-ref_dist)*Kp_x
-        cmd_vel.linear.y = (y_dist)*Kp_y
-        cmd_vel.angular.z = 0.0
-        return cmd_vel
-    
-        ############################################
 
 def main(args=None):
     # Initialize the rclpy library

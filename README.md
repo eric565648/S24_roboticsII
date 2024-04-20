@@ -1,5 +1,15 @@
 # S24_roboticsII
-ROS2 Workspace for S24 RoboticsII
+ROS2 Workspace for S24 Robotics II
+
+Team Pending:
+
+Ashlynn Allison
+
+Ryan Benson
+
+John Marcotte
+
+Alexis Tendilla
 
 For robot issues, please refer to [this document](https://www.overleaf.com/read/jckcnqkwytvb#22a42e).
 
